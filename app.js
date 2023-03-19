@@ -9,69 +9,28 @@ app.get("/", function (req, res) {
 });
 const mongoose = require("mongoose");
 require("./models/user.schema");
-require("./models/chatroom.schema");
+require("./models/room.schema");
 require("./models/message.schema");
 
-const Message = mongoose.model("message");
-const User = mongoose.model("User");
+const Room = mongoose.model("Room");
+const RoomController = require("./controllers/room.controller");
 
-io.use(async (socket, next) => {
-    try {
-        const { userId } = socket.handshake.query;
-        const user = await User.findById(userId);
-        if (!user) {
-            return next(new Error("User not found"));
-        }
-        socket.userId = user;
-        next();
-    } catch (err) {}
-});
-
-io.on("connection", (socket) => {
-    console.log("Connected: " + socket.userId);
-
-    socket.on("disconnect", () => {
-        console.log("Disconnected: " + socket.userId);
+io.on("connection", function (socket) {
+    console.log("a user connected");
+    socket.on("createRoom", function (name, numberPlayers) {
+        RoomController.createRoom(name, numberPlayers, socket);
     });
-
-    // join a room and send all messages in that room and populate user info message.user
-    socket.on("joinRoom", async ({ chatroomId }) => {
-        socket.join(chatroomId);
-        try {
-            const messages = await Message.find({ chatroom: chatroomId })
-                .populate("user", "name")
-                .sort({ createdAt: "asc" })
-                .limit(100);
-            socket.emit("allMessages", messages.reverse());
-        } catch (err) {
-            console.log(err);
-        }
+    socket.on("joinRoom", function (name, key) {
+        RoomController.joinRoom(name, key, socket);
     });
-
-    socket.on("leaveRoom", ({ chatroomId }) => {
-        socket.leave(chatroomId);
-        console.log("A user left chatroom: " + chatroomId);
+    socket.on("leaveRoom", function (name, key) {
+        RoomController.leaveRoom(name, key, socket);
     });
-
-    //   recieve message from client and send to all users in chatroom
-    socket.on("chatroomMessage", async ({ msg, chatroomId }) => {
-        try {
-            const user = await User.findById(socket.userId);
-            const newMessage = new Message({
-                user: user,
-                message: msg,
-                chatroom: chatroomId,
-            });
-            io.to(chatroomId).emit("newMessage", {
-                message: msg,
-                _id: newMessage._id,
-                user: user,
-                createdAt: newMessage.createdAt,
-            });
-            await newMessage.save();
-        } catch (err) {
-            console.log(err);
-        }
+    socket.on("deleteRoom", function (name, key) {
+        RoomController.deleteRoom(name, key, socket);
+    });
+    socket.on("disconnect", function () {
+        console.log("user disconnected");
     });
 });
 

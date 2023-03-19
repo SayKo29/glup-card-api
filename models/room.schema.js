@@ -1,7 +1,7 @@
 const mongoose = require("mongoose");
 
 module.exports = mongoose.model(
-    "Category",
+    "Room",
     new mongoose.Schema(
         {
             name: {
@@ -9,14 +9,12 @@ module.exports = mongoose.model(
                 default: null,
                 required: true,
             },
-            description: {
+            key: {
                 type: String,
                 required: true,
             },
-            icon: {
-                type: String,
-                default: null,
-                required: false,
+            numberPlayers: {
+                type: Number,
             },
         },
         {
@@ -24,5 +22,5 @@ module.exports = mongoose.model(
         }
     ),
     // collection
-    "categories"
+    "Room"
 );

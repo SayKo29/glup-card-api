@@ -1,85 +1,23 @@
 const Schema = require("../models/user.schema");
-const bcrypt = require("bcryptjs");
-const jwt = require("jsonwebtoken");
 
 exports.newUser = (req, res) => {
-    // validate requests
-    let { name, email, password, gender, role, events } = req.body;
-    console.log(req.body);
-    if (!req.body)
-        return res.status(400).send({ message: "Content can not be empty!" });
-    if (!req.body.name)
-        return res.status(400).send({ message: "Name can not be empty!" });
-    if (!req.body.email)
-        return res.status(400).send({ message: "Email can not be empty!" });
-    if (!req.body.password)
-        return res.status(400).send({ message: "Password can not be empty!" });
-    if (req.body.password.length < 8)
-        return res.status(400).send({
-            message: "Password must be equal or more than 8 character!",
-        });
-    // if (!req.body.gender)
-    //     return res.status(400).send({ message: "Gender can not be empty!" });
-    // if (!req.body.role)
-    //     return res.status(400).send({ message: "Role can not be empty!" });
-    // check if email already exist
-    try {
-        Schema.findOne({ email }).then((user) => {
-            if (!user) {
-                console.log("Email belum terdaftar.");
-                // convert password to hashed
-                const encryptedPassword = bcrypt.hashSync(password, 10);
-                console.log(encryptedPassword);
-                // initialize newUser data
-                const newUser = new Schema({
-                    name: name,
-                    email: email,
-                    gender: gender ? gender : 'male',
-                    password: encryptedPassword,
-                    role: role ? role : "admin",
-                    events: events,
-                });
-                console.log(newUser);
-                newUser
-                    .save()
-                    .then((user) => {
-                        console.log("Register success.");
-                        // auto sign in token create from user id
-                        var accessToken = jwt.sign(
-                            { id: user._id },
-                            process.env.JWT_SECRET,
-                            { expiresIn: 86400 }
-                        );
-                        console.log("Token: ", accessToken);
+    // new user with name
+    const user = new Schema({
+        name: req.body.name,
+    });
 
-                        return res.status(200).send({
-                            message: "User created.",
-                            user: {
-                                id: user._id,
-                                name: user.name,
-                                email: user.email,
-                                role: user.role,
-                            },
-                            token: accessToken,
-                        });
-                    })
-                    .catch((err) => {
-                        console.log(err);
-                        return res
-                            .status(500)
-                            .send({ message: err.message || "Register fail." });
-                    });
-            } else if (user) {
-                return res.status(409).send({
-                    message: "Email have been registered, please login.",
-                });
-            }
+    // save user in the database
+    user.save()
+        .then((data) => {
+            res.send(data);
+        })
+        .catch((err) => {
+            res.status(500).send({
+                message:
+                    err.message ||
+                    "some error occured while creating a new user",
+            });
         });
-    } catch (err) {
-        return res
-            .status(500)
-            .send({ message: err || "Coba cek koneksi internetmu." });
-    }
 };
 
 // retrieve all user data from the DB
@@ -99,18 +37,6 @@ exports.find = (req, res) => {
                     err.message || "some error ocurred while retrieving data.",
             });
         });
-        
-
-    // Schema.find()
-    //     .then((data) => {
-    //         return res.status(200).send(data);
-    //     })
-    //     .catch((err) => {
-    //         return res.status(500).send({
-    //             message:
-    //                 err.message || "some error ocurred while retrieving data.",
-    //         });
-    //     });
 };
 
 // get and find a single user data with id
