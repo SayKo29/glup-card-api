@@ -10,7 +10,7 @@ app.get("/", function (req, res) {
 require("./models/user.schema");
 require("./models/room.schema");
 require("./models/message.schema");
-require("./models/card.schema");
+require("./models/Cards");
 
 const RoomController = require("./controllers/room.controller");
 const GameController = require("./controllers/game.controller");
@@ -27,6 +27,7 @@ io.on("connection", function (socket) {
     });
     socket.on("startGame", function (name, key) {
         console.log("startGame");
+        //  call async start game
         GameController.startGame(name, key, socket);
     });
     socket.on("leaveRoom", function (name, key) {

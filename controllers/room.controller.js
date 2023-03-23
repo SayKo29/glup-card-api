@@ -53,6 +53,7 @@ exports.joinRoom = function (name, key, username, socket) {
             console.log(
                 "La sala " + name + " con la clave " + key + " no existe"
             );
+            socket.emit("roomNotFound");
         } else {
             console.log(
                 "El usuario " +
@@ -64,6 +65,11 @@ exports.joinRoom = function (name, key, username, socket) {
             );
 
             // Unirse a la sala
+            socket.emit("roomFound", {
+                name: foundRoom.name,
+                key: foundRoom.key,
+                numberPlayers: foundRoom.numberPlayers,
+            });
             socket.join(foundRoom.key);
             socket.room = foundRoom.key;
             socket.username = username;
