@@ -1,10 +1,13 @@
 const Room = require("../models/room.schema");
+
 let nanoid;
 import("nanoid").then((module) => {
     nanoid = module.nanoid;
 });
-exports.createRoom = function (name, numberPlayers, socket) {
+
+exports.createRoom = function (name, username, numberPlayers, socket) {
     let nanoKey = nanoid(5);
+    console.log(name, username, numberPlayers);
     const room = new Room({
         name: name,
         numberPlayers: numberPlayers,
@@ -25,45 +28,60 @@ exports.createRoom = function (name, numberPlayers, socket) {
             // Unirse a la sala
             socket.join(room.key);
             socket.room = room.key;
-            socket.username = name;
+            socket.username = username;
 
+            // Obtener número de clientes conectados en la sala
+            let numClients = socket.adapter.rooms.get(room.key).size;
+            console.log("Number of players connected: " + numClients);
             // Emitir un mensaje de confirmación al cliente
             socket.emit("roomCreated", {
                 name: room.name,
                 key: room.key,
                 numberPlayers: room.numberPlayers,
             });
+            socket.emit("numPlayers", numClients);
+            socket.emit("isCreator", "true");
         }
     });
 };
 
-exports.joinRoom = function (name, key, socket) {
-    Room.findOne({ name: name, key: key }, function (err, room) {
+exports.joinRoom = function (name, key, username, socket) {
+    Room.findOne({ name: name, key: key }, function (err, foundRoom) {
         if (err) {
             console.log("Error al buscar la sala: " + err);
-        } else if (!room) {
+        } else if (!foundRoom) {
             console.log(
                 "La sala " + name + " con la clave " + key + " no existe"
             );
         } else {
             console.log(
                 "El usuario " +
-                    name +
+                    username +
                     " se ha unido a la sala " +
-                    room.name +
+                    foundRoom.name +
                     " con la clave " +
-                    room.key
+                    foundRoom.key
             );
 
             // Unirse a la sala
-            socket.join(room.key);
-            socket.room = room.key;
-            socket.username = name;
+            socket.join(foundRoom.key);
+            socket.room = foundRoom.key;
+            socket.username = username;
 
-            // Emitir un mensaje de confirmación al cliente
-            socket.emit("roomJoined", { room: room.name, key: room.key });
+            const room = socket.adapter.rooms.get(foundRoom.key);
+            if (room) {
+                const numPlayers = room.size;
+                socket.to(foundRoom.key).emit("numPlayers", numPlayers);
+                socket.emit("numPlayers", numPlayers);
+                socket.emit("isCreator", "false");
+            }
         }
     });
+};
+
+exports.setNickname = function (name, key, nickname, socket) {
+    socket.setNickname = nickname;
+    console.log("Nickname: " + socket.setNickname);
 };
 
 exports.leaveRoom = function (name, key, socket) {
@@ -85,12 +103,17 @@ exports.leaveRoom = function (name, key, socket) {
             );
 
             // Dejar la sala
-            socket.leave(room.key);
+            socket.leave(key);
             socket.room = null;
             socket.username = null;
 
             // Emitir un mensaje de confirmación al cliente
             socket.emit("roomLeft", { room: room.name, key: room.key });
+
+            // Obtener número de clientes conectados en la sala
+            let numClients = socket.adapter.rooms.get(key).size;
+            console.log("Number of players connected: " + numClients);
+            socket.emit("numPlayers", numClients);
         }
     });
 };

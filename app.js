@@ -7,21 +7,27 @@ var io = require("socket.io")(http);
 app.get("/", function (req, res) {
     res.sendFile(__dirname + "/index.html");
 });
-const mongoose = require("mongoose");
 require("./models/user.schema");
 require("./models/room.schema");
 require("./models/message.schema");
+require("./models/card.schema");
 
-const Room = mongoose.model("Room");
 const RoomController = require("./controllers/room.controller");
+const GameController = require("./controllers/game.controller");
 
 io.on("connection", function (socket) {
-    console.log("a user connected");
-    socket.on("createRoom", function (name, numberPlayers) {
-        RoomController.createRoom(name, numberPlayers, socket);
+    socket.on("createRoom", function (name, nickname, numberPlayers) {
+        RoomController.createRoom(name, nickname, numberPlayers, socket);
     });
-    socket.on("joinRoom", function (name, key) {
-        RoomController.joinRoom(name, key, socket);
+    socket.on("joinRoom", function (name, key, username) {
+        RoomController.joinRoom(name, key, username, socket);
+    });
+    socket.on("setNickname", function (name, key, nickname) {
+        RoomController.setNickname(name, key, nickname, socket);
+    });
+    socket.on("startGame", function (name, key) {
+        console.log("startGame");
+        GameController.startGame(name, key, socket);
     });
     socket.on("leaveRoom", function (name, key) {
         RoomController.leaveRoom(name, key, socket);
