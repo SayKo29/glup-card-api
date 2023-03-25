@@ -22,13 +22,9 @@ io.on("connection", function (socket) {
     socket.on("joinRoom", function (name, key, username) {
         RoomController.joinRoom(name, key, username, socket);
     });
-    socket.on("setNickname", function (name, key, nickname) {
-        RoomController.setNickname(name, key, nickname, socket);
-    });
     socket.on("startGame", function (name, key) {
-        console.log("startGame");
         //  call async start game
-        GameController.startGame(name, key, socket);
+        GameController.startGame(name, key, socket, io);
     });
     socket.on("leaveRoom", function (name, key) {
         RoomController.leaveRoom(name, key, socket);

@@ -9,9 +9,9 @@ exports.createRoom = function (name, username, numberPlayers, socket) {
     let nanoKey = nanoid(5);
     console.log(name, username, numberPlayers);
     const room = new Room({
-        name: name,
+        name: "1",
         numberPlayers: numberPlayers,
-        key: nanoKey,
+        key: "1",
     });
     room.save(function (err) {
         if (err) {
@@ -32,7 +32,6 @@ exports.createRoom = function (name, username, numberPlayers, socket) {
 
             // Obtener número de clientes conectados en la sala
             let numClients = socket.adapter.rooms.get(room.key).size;
-            console.log("Number of players connected: " + numClients);
             // Emitir un mensaje de confirmación al cliente
             socket.emit("roomCreated", {
                 name: room.name,
@@ -75,7 +74,13 @@ exports.joinRoom = function (name, key, username, socket) {
             socket.username = username;
 
             const room = socket.adapter.rooms.get(foundRoom.key);
-            if (room) {
+            // if room hasnt have players yet then is the creator
+            if (room && room.size === 1) {
+                const numPlayers = room.size;
+                socket.to(foundRoom.key).emit("numPlayers", numPlayers);
+                socket.emit("numPlayers", numPlayers);
+                socket.emit("isCreator", "true");
+            } else {
                 const numPlayers = room.size;
                 socket.to(foundRoom.key).emit("numPlayers", numPlayers);
                 socket.emit("numPlayers", numPlayers);

@@ -7,7 +7,6 @@ class AnswersDeck {
 
     async getCards(type) {
         const cards = await findByType(type);
-        console.log(cards, "answercards");
         this.cards = cards;
         return cards;
     }
@@ -21,10 +20,18 @@ class AnswersDeck {
     }
 
     drawCards(num) {
-        const cards = [];
+        // Draw cards from the deck trying to no repeat cards, if there are not enough cards repeat them
+        let cards = [];
+        let copy = [...this.cards];
         for (let i = 0; i < num; i++) {
-            cards.push(this.drawCard());
+            if (copy.length === 0) {
+                copy = [...this.cards];
+            }
+            const index = Math.floor(Math.random() * copy.length);
+            cards.push(copy[index]);
+            copy.splice(index, 1);
         }
+
         return cards;
     }
 
