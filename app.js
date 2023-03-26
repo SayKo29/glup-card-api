@@ -26,6 +26,17 @@ io.on("connection", function (socket) {
         //  call async start game
         GameController.startGame(name, key, socket, io);
     });
+    socket.on("selectedAnswerGame", function (name, key, answer) {
+        //  call async start game
+        GameController.selectedAnswerGame(
+            name,
+            key,
+            username,
+            answer,
+            socket,
+            io
+        );
+    });
     socket.on("leaveRoom", function (name, key) {
         RoomController.leaveRoom(name, key, socket);
     });
