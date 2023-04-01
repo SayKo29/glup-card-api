@@ -3,6 +3,7 @@ const { findByType } = require("./Cards");
 class AnswersDeck {
     constructor() {
         this.cards = [];
+        this.resetDeck();
     }
 
     async getCards(type) {
@@ -14,9 +15,17 @@ class AnswersDeck {
     addCard(card) {
         this.cards.push(card);
     }
+    getCardById(id) {
+        return this.cards.find((card) => card._id === id);
+    }
 
     drawCard() {
         return this.cards.pop();
+    }
+
+    resetDeck() {
+        this.cards = [];
+        this.getCards(2);
     }
 
     drawCards(num) {

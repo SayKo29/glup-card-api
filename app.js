@@ -12,39 +12,35 @@ require("./models/room.schema");
 require("./models/message.schema");
 require("./models/Cards");
 
+// Controllers
 const RoomController = require("./controllers/room.controller");
 const GameController = require("./controllers/game.controller");
 
-io.on("connection", function (socket) {
-    socket.on("createRoom", function (name, nickname, numberPlayers) {
-        RoomController.createRoom(name, nickname, numberPlayers, socket);
+// Socket.io
+io.on("connection", (socket) => {
+    console.log("User connected");
+    socket.on("createRoom", (name, nickname, numberPlayers) => {
+        RoomController.createRoom(name, nickname, numberPlayers, socket, io);
     });
-    socket.on("joinRoom", function (name, key, username) {
-        RoomController.joinRoom(name, key, username, socket);
+    socket.on("joinRoom", (name, key, username) => {
+        RoomController.joinRoom(name, key, username, socket, io);
     });
-    socket.on("startGame", function (name, key) {
-        //  call async start game
-        GameController.startGame(name, key, socket, io);
+    socket.on("startGame", (roomName, roomKey, host) => {
+        GameController.startGame(roomName, roomKey, host, socket, io);
     });
-    socket.on("selectedAnswerGame", function (name, key, answer) {
-        //  call async start game
-        GameController.selectedAnswerGame(
-            name,
-            key,
-            username,
+    socket.on("selectedAnswer", (answer, roomObject, username) => {
+        GameController.updateAnswersToHost(
             answer,
+            roomObject,
+            username,
             socket,
             io
         );
     });
-    socket.on("leaveRoom", function (name, key) {
-        RoomController.leaveRoom(name, key, socket);
-    });
-    socket.on("deleteRoom", function (name, key) {
-        RoomController.deleteRoom(name, key, socket);
-    });
-    socket.on("disconnect", function () {
-        console.log("user disconnected");
+    socket.on("disconnect", () => {
+        console.log("User disconnected");
+        // remove the user from the room and db
+        RoomController.removeUserFromRoom(socket, io);
     });
 });
 

@@ -1,154 +1,110 @@
 const Room = require("../models/room.schema");
 
-let nanoid;
-import("nanoid").then((module) => {
-    nanoid = module.nanoid;
-});
+function makeid(length) {
+    var result = "";
+    var characters =
+        "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+    var charactersLength = characters.length;
+    for (var i = 0; i < length; i++) {
+        result += characters.charAt(
+            Math.floor(Math.random() * charactersLength)
+        );
+    }
+    return result;
+}
 
-exports.createRoom = function (name, username, numberPlayers, socket) {
-    let nanoKey = nanoid(5);
-    console.log(name, username, numberPlayers);
-    const room = new Room({
-        name: "1",
-        numberPlayers: numberPlayers,
-        key: "1",
+function createRoom(name, nickname, numberPlayers, socket, io) {
+    // const key = makeid(6);
+    const key = 1;
+    // const host = nickname;
+    console.log(numberPlayers);
+    const host = nickname;
+    const users = [{ nickname: nickname }];
+    const max_players = numberPlayers;
+    const newRoom = new Room({
+        name: 1,
+        key: key,
+        users: users,
+        max_players: max_players,
+        host: host,
     });
-    room.save(function (err) {
-        if (err) {
-            console.log("Error al crear la sala: " + err);
-        } else {
-            console.log(
-                "La sala con el nombre" +
-                    room.name +
-                    " con la clave" +
-                    room.key +
-                    " ha sido creada con éxito"
-            );
-
-            // Unirse a la sala
-            socket.join(room.key);
-            socket.room = room.key;
-            socket.username = username;
-
-            // Obtener número de clientes conectados en la sala
-            let numClients = socket.adapter.rooms.get(room.key).size;
-            // Emitir un mensaje de confirmación al cliente
-            socket.emit("roomCreated", {
-                name: room.name,
-                key: room.key,
-                numberPlayers: room.numberPlayers,
-            });
-            socket.emit("numPlayers", numClients);
-            socket.emit("isCreator", "true");
-        }
+    newRoom.save().then(() => {
+        socket.emit("roomCreated", newRoom);
+        socket.emit("numPlayers", newRoom.users.length);
+        socket.join(newRoom.key);
     });
-};
+}
 
-exports.joinRoom = function (name, key, username, socket) {
-    Room.findOne({ name: name, key: key }, function (err, foundRoom) {
-        if (err) {
-            console.log("Error al buscar la sala: " + err);
-        } else if (!foundRoom) {
-            console.log(
-                "La sala " + name + " con la clave " + key + " no existe"
-            );
-            socket.emit("roomNotFound");
+function joinRoom(name, key, username, socket, io) {
+    Room.findOne({ name: name, key: key }).then((room) => {
+        if (!room) {
+            socket.emit("joinError", "Room not found");
         } else {
-            console.log(
-                "El usuario " +
-                    username +
-                    " se ha unido a la sala " +
-                    foundRoom.name +
-                    " con la clave " +
-                    foundRoom.key
+            // Check if user is already in the room
+            const existingUser = room.users.find(
+                (user) => user.nickname === username
             );
-
-            // Unirse a la sala
-            socket.emit("roomFound", {
-                name: foundRoom.name,
-                key: foundRoom.key,
-                numberPlayers: foundRoom.numberPlayers,
-            });
-            socket.join(foundRoom.key);
-            socket.room = foundRoom.key;
-            socket.username = username;
-
-            const room = socket.adapter.rooms.get(foundRoom.key);
-            // if room hasnt have players yet then is the creator
-            if (room && room.size === 1) {
-                const numPlayers = room.size;
-                socket.to(foundRoom.key).emit("numPlayers", numPlayers);
-                socket.emit("numPlayers", numPlayers);
-                socket.emit("isCreator", "true");
+            if (existingUser) {
+                socket.emit("joinError", "Username already taken");
             } else {
-                const numPlayers = room.size;
-                socket.to(foundRoom.key).emit("numPlayers", numPlayers);
-                socket.emit("numPlayers", numPlayers);
-                socket.emit("isCreator", "false");
+                room.users.push({ nickname: username });
+                //update room
+                room.save().then(() => {
+                    socket.join(room.key);
+                    socket.emit("roomJoined", room);
+                    io.to(room.key).emit("roomFound", room);
+                    // emit numPlayers
+                    io.to(room.key).emit("numPlayers", room.users.length);
+                });
             }
         }
     });
-};
+}
 
-exports.setNickname = function (name, key, nickname, socket) {
-    socket.setNickname = nickname;
-    console.log("Nickname: " + socket.setNickname);
-};
-
-exports.leaveRoom = function (name, key, socket) {
-    Room.findOne({ name: name, key: key }, function (err, room) {
-        if (err) {
-            console.log("Error al buscar la sala: " + err);
-        } else if (!room) {
-            console.log(
-                "La sala " + name + " con la clave " + key + " no existe"
-            );
+function removeRoom(name, key, socket, io) {
+    Room.deleteOne({ name: name, key: key }).then((room) => {
+        if (!room) {
+            socket.emit("joinError", "Room not found");
         } else {
-            console.log(
-                "El usuario " +
-                    name +
-                    " ha abandonado la sala " +
-                    room.name +
-                    " con la clave " +
-                    room.key
-            );
-
-            // Dejar la sala
-            socket.leave(key);
-            socket.room = null;
-            socket.username = null;
-
-            // Emitir un mensaje de confirmación al cliente
-            socket.emit("roomLeft", { room: room.name, key: room.key });
-
-            // Obtener número de clientes conectados en la sala
-            let numClients = socket.adapter.rooms.get(key).size;
-            console.log("Number of players connected: " + numClients);
-            socket.emit("numPlayers", numClients);
+            socket.emit("roomRemoved", room);
         }
     });
-};
+}
 
-exports.deleteRoom = function (name, key, socket) {
-    Room.deleteOne({ name: name, key: key }, function (err) {
-        if (err) {
-            console.log("Error al eliminar la sala: " + err);
+function removeUserFromRoom(name, key, username, socket, io) {
+    Room.findOne({ name: name, key: key }).then((room) => {
+        if (!room) {
+            socket.emit("joinError", "Room not found");
         } else {
-            console.log(
-                "La sala " +
-                    name +
-                    " con la clave " +
-                    key +
-                    " ha sido eliminada"
+            const userIndex = room.users.findIndex(
+                (user) => user.nickname === username
             );
+            if (userIndex === -1) {
+                socket.emit("joinError", "User not found");
+            } else {
+                room.users.splice(userIndex, 1);
 
-            // Dejar la sala
-            socket.leave(room.key);
-            socket.room = null;
-            socket.username = null;
+                if (room.host === username) {
+                    // If the removed user is the host, then assign host role to the next user in the list
+                    if (room.users.length > 0) {
+                        room.host = room.users[0].nickname;
+                    }
+                }
 
-            // Emitir un mensaje de confirmación al cliente
-            socket.emit("roomDeleted", { room: room.name, key: room.key });
+                room.save().then(() => {
+                    socket.leave(room.key);
+                    socket.emit("userRemoved", room);
+                    io.to(room.key).emit("roomFound", room);
+                    io.to(room.key).emit("numPlayers", room.users.length);
+                });
+            }
         }
     });
+}
+
+module.exports = {
+    createRoom,
+    joinRoom,
+    removeRoom,
+    removeUserFromRoom,
 };

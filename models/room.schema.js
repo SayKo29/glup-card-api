@@ -1,26 +1,37 @@
 const mongoose = require("mongoose");
 
-module.exports = mongoose.model(
-    "Room",
-    new mongoose.Schema(
+const RoomSchema = new mongoose.Schema({
+    name: {
+        type: String,
+        required: true,
+    },
+    key: {
+        type: String,
+        required: true,
+    },
+    users: [
         {
-            name: {
-                type: String,
-                default: null,
-                required: true,
-            },
-            key: {
+            nickname: {
                 type: String,
                 required: true,
-            },
-            numberPlayers: {
-                type: Number,
             },
         },
-        {
-            timestamps: true,
-        }
-    ),
-    // collection
-    "Room"
-);
+    ],
+    max_players: {
+        type: Number,
+        required: true,
+    },
+    host: {
+        type: String,
+        required: true,
+    },
+    game_started: {
+        type: Boolean,
+        required: true,
+        default: false,
+    },
+});
+
+const Room = mongoose.model("Room", RoomSchema);
+
+module.exports = Room;

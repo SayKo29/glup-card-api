@@ -1,135 +1,118 @@
-// Path: controllers\game.controller.js
-
+const Room = require("../models/room.schema");
 const QuestionsDeck = require("../models/QuestionsDeck");
 const AnswersDeck = require("../models/AnswersDeck");
 
 let games = {};
 
-exports.startGame = async function (name, key, socket, io) {
-    const gameKey = `${name}-${key}`;
-
+async function startGame(roomName, roomKey, host, socket, io) {
+    // create new game object
+    const gameKey = `${roomName}-${roomKey}`;
     if (games[gameKey]) {
-        socket.emit("errorMessage", "Game already exists");
+        socket.emit("errorMessage", "Game already started");
         return;
     }
 
-    // Create a new game
     const game = {
         players: [],
-        host: null,
-        currentQuestion: null,
+        host: "",
+        currentQuestion: {},
         currentAnswers: [],
-        playerAnswers: {},
-        scores: {},
-        maxScore: 10,
-        winningPlayers: [],
+        questionsDeck: [],
+        answersDeck: [],
+        playersAnswers: [],
+        currentRound: 0,
+        maxRounds: 10,
         isGameOver: false,
     };
 
-    // Add game to games object
-    games[gameKey] = game;
-
-    // Create a new deck of questions and answers
-    const questionDeck = new QuestionsDeck();
+    //create new deck of questions and answers
+    const questionsDeck = new QuestionsDeck();
     const answersDeck = new AnswersDeck();
 
-    // Get cards from the database and add them to the decks
-    await questionDeck.getCards(1);
-    await answersDeck.getCards(2);
+    // get cards from the database and add them to the decks
 
-    // Shuffle decks
-    questionDeck.shuffle();
-    answersDeck.shuffle();
+    const [questions, answers] = await Promise.all([
+        questionsDeck.getCards(1),
+        answersDeck.getCards(2),
+    ]);
 
-    // Assign host
-    game.host = socket.id;
+    // assign the host to the game
+    game.host = host;
 
-    // push all players to game.players
-    // console.log(socket.adapter.rooms.get(key), "socket.adapter.rooms.get(key)");
-    // game.players = socket.adapter.rooms.get(key);
+    // assign the decks to the game
+    game.questionsDeck = questions;
+    game.answersDeck = answers;
+    console.log(answers, "answers");
 
-    // enviar a todos los jugadores del room el evento gameStarted
-    socket.emit("gameStarted");
-    socket.to(key).emit("gameStarted");
-
-    // Send game data to host
-    socket.emit("gameData", {
-        players: game.players,
-        host: game.host,
-        currentQuestion: game.currentQuestion,
-        currentAnswers: game.currentAnswers,
-        playerAnswers: game.playerAnswers,
-        scores: game.scores,
-        maxScore: game.maxScore,
-        winningPlayers: game.winningPlayers,
-        isGameOver: game.isGameOver,
+    let allAnswers = [];
+    answers.forEach((answer) => {
+        allAnswers.push(answer);
     });
 
-    // Initialize current player index to 0
-    let currentPlayerIndex = 0;
+    // get the first question taking it from the deck
+    const randomQuestion = game.questionsDeck[0];
+    game.currentQuestion = randomQuestion;
 
-    // Emit question to host
-    game.currentQuestion = questionDeck.drawCard();
-    socket.emit("newQuestion", game.currentQuestion);
+    // get different players from the room to set his answers
 
-    // Emit different answers to host
-    const usersSet = socket.adapter.rooms.get(key);
-    const usersArray = Array.from(usersSet); // convierte el objeto Set a un array
-    const usersObj = {}; // crea un objeto vacío para almacenar los usuarios
+    const users = await Room.find({ name: roomName, key: roomKey }).select(
+        "users"
+    );
+    for (let i = 0; i < users.length; i++) {
+        const players = users[i];
+        for (let k = 0; k < players.users.length; k++) {
+            const player = players.users[k];
+            const answerCards = [];
+            for (let j = 0; j < 5; j++) {
+                let pickCard = Math.floor(Math.random() * allAnswers.length);
+                const answerCard = allAnswers[pickCard];
+                answerCards.push(answerCard);
+                allAnswers.splice(pickCard, 1); // remove selected card from deck
+                if (allAnswers.length === 0) {
+                    // if deck is empty, add cards back
+                    allAnswers = [];
+                    allAnswers = game.allAnswers;
+                }
+            }
+            const playerObject = {
+                username: player.nickname,
+                answerCards: answerCards,
+                selectedAnswer: null,
+                points: 0,
+            };
 
-    usersArray.forEach((socketId) => {
-        let userSocket = io.of("/").sockets.get(socketId);
-        // const userSocket = socket.sockets.get(socketId);
-        usersObj[socketId] = userSocket.username; // agrega el socketId y el username del usuario al objeto
-    });
-
-    // console.log(usersObj); // logs el objeto con todos los usuarios en la sala
-    // recorre el objeto y envia a cada usuario el evento newAnswers con sus respectivas  cartas
-    for (const socketId in usersObj) {
-        io.to(socketId).emit("newAnswers", answersDeck.drawCards(4));
-    }
-};
-
-exports.selectedAnswerGame = async function (name, key, answer, socket) {
-    const gameKey = `${name}-${key}`;
-    const game = games[gameKey];
-
-    // Add player answer to playerAnswers object
-    game.playerAnswers[username] = answer;
-
-    //send to host the player answer
-    socket.emit("newAnswerHost", game.playerAnswers);
-
-    // Check if all players have answered
-    if (Object.keys(game.playerAnswers).length === game.players.length) {
-        // Emit event to host
-        socket.emit("allPlayersAnswered", game.playerAnswers);
-
-        // Emit event to all players
-        socket.to(key).emit("allPlayersAnswered", game.playerAnswers);
-
-        // Reset player answers
-        game.playerAnswers = {};
-
-        // Check if game is over
-        if (game.scores[username] >= game.maxScore) {
-            game.isGameOver = true;
-            game.winningPlayers.push(username);
-
-            // Emit event to host
-            socket.emit("gameOver", game.winningPlayers);
-
-            // Emit event to all players
-            socket.to(key).emit("gameOver", game.winningPlayers);
-
-            // Delete game from games object
-            delete games[gameKey];
-        } else {
-            // Emit event to host
-            socket.emit("nextRound");
-
-            // Emit event to all players
-            socket.to(key).emit("nextRound");
+            game.players.push(playerObject);
         }
     }
-};
+
+    // send a message to all clients with the updated game object
+    //add game to games object
+    games[gameKey] = game;
+    io.to(roomName).emit("gameStarted");
+    io.to(roomName).emit("gameData", game);
+}
+
+async function updateAnswersToHost(answer, roomObject, username, socket, io) {
+    const gameKey = `${roomObject.name}-${roomObject.key}`;
+    const game = games[gameKey];
+    if (!game) {
+        io.to(roomObject.name).emit("errorMessage", "Game not found");
+        return;
+    }
+
+    // get answer by answerId
+    game.answersDeck.forEach((answerCard) => {
+        console.log(answerCard, "answerCardforeach");
+        if (answerCard.id === answer) {
+            answer = answerCard;
+        }
+    });
+    console.log(answer, "answer");
+
+    game.playersAnswers.push(answer);
+
+    // send a message to all clients with the updated game object
+    io.to(roomObject.name).emit("updateAnswers", game);
+}
+
+module.exports = { startGame, updateAnswersToHost };
