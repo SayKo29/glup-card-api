@@ -23,6 +23,7 @@ async function startGame(roomName, roomKey, host, socket, io) {
         currentRound: 0,
         maxRounds: 10,
         isGameOver: false,
+        gameIsStarted: false,
     };
 
     //create new deck of questions and answers
@@ -42,7 +43,6 @@ async function startGame(roomName, roomKey, host, socket, io) {
     // assign the decks to the game
     game.questionsDeck = questions;
     game.answersDeck = answers;
-    console.log(answers, "answers");
 
     let allAnswers = [];
     answers.forEach((answer) => {
@@ -87,9 +87,15 @@ async function startGame(roomName, roomKey, host, socket, io) {
 
     // send a message to all clients with the updated game object
     //add game to games object
+    game.gameIsStarted = true;
     games[gameKey] = game;
     io.to(roomName).emit("gameStarted");
     io.to(roomName).emit("gameData", game);
+    // set game started in db
+    await Room.findOneAndUpdate(
+        { name: roomName, key: roomKey },
+        { game_started: true }
+    );
 }
 
 async function updateAnswersToHost(answer, roomObject, username, socket, io) {
@@ -99,20 +105,30 @@ async function updateAnswersToHost(answer, roomObject, username, socket, io) {
         io.to(roomObject.name).emit("errorMessage", "Game not found");
         return;
     }
-
-    // get answer by answerId
-    game.answersDeck.forEach((answerCard) => {
-        console.log(answerCard, "answerCardforeach");
-        if (answerCard.id === answer) {
-            answer = answerCard;
-        }
-    });
-    console.log(answer, "answer");
-
+    console.log(answer);
     game.playersAnswers.push(answer);
 
     // send a message to all clients with the updated game object
     io.to(roomObject.name).emit("updateAnswers", game);
 }
 
-module.exports = { startGame, updateAnswersToHost };
+async function voteHost(answer, roomObject, username, socket, io) {
+    const gameKey = `${roomObject.name}-${roomObject.key}`;
+    const game = games[gameKey];
+    if (!game) {
+        io.to(roomObject.name).emit("errorMessage", "Game not found");
+        return;
+    }
+    console.log(answer);
+
+    game.players.forEach((player) => {
+        if (player.username === answer.nickname) {
+            player.points += 1;
+        }
+    });
+
+    // send a message to all clients with the updated game object
+    io.to(roomObject.name).emit("updateAnswers", game);
+}
+
+module.exports = { startGame, updateAnswersToHost, voteHost };

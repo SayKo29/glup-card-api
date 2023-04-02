@@ -37,6 +37,9 @@ io.on("connection", (socket) => {
             io
         );
     });
+    socket.on("votedAnswerHost", (answer, roomObject, username) => {
+        GameController.voteHost(answer, roomObject, username, socket, io);
+    });
     socket.on("disconnect", () => {
         console.log("User disconnected");
         // remove the user from the room and db
