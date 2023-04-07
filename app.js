@@ -19,14 +19,14 @@ const GameController = require("./controllers/game.controller");
 // Socket.io
 io.on("connection", (socket) => {
     console.log("User connected");
-    socket.on("createRoom", (name, nickname, numberPlayers) => {
-        RoomController.createRoom(name, nickname, numberPlayers, socket, io);
+    socket.on("createRoom", (roomObject, nickname, numPlayers) => {
+        RoomController.createRoom(roomObject, nickname, numPlayers, socket, io);
     });
-    socket.on("joinRoom", (name, key, username) => {
-        RoomController.joinRoom(name, key, username, socket, io);
+    socket.on("joinRoom", (roomObject) => {
+        RoomController.joinRoom(roomObject, socket, io);
     });
-    socket.on("startGame", (roomName, roomKey, host) => {
-        GameController.startGame(roomName, roomKey, host, socket, io);
+    socket.on("startGame", (roomObject, host) => {
+        GameController.startGame(roomObject, host, socket, io);
     });
     socket.on("selectedAnswer", (answer, roomObject, username) => {
         GameController.updateAnswersToHost(
@@ -37,8 +37,8 @@ io.on("connection", (socket) => {
             io
         );
     });
-    socket.on("votedAnswerHost", (answer, roomObject, username) => {
-        GameController.voteHost(answer, roomObject, username, socket, io);
+    socket.on("votedAnswerHost", (answer, roomObject) => {
+        GameController.voteHost(answer, roomObject, socket, io);
     });
     socket.on("disconnect", () => {
         console.log("User disconnected");
