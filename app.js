@@ -49,8 +49,11 @@ io.on("connection", (socket) => {
     });
 });
 
-http.listen(5001, function () {
-    console.log("listening on *:5001 ");
+// env port
+const port = process.env.PORT;
+
+http.listen(port, function () {
+    console.log("listening on *:5000 ");
 });
 
 module.exports = app;
