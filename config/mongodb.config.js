@@ -1,6 +1,6 @@
 const mongoose = require("mongoose");
 
-mongoose.connect(process.env.MONGO_URI, function (err) {
+mongoose.connect(process.env.DATABASE_URL, function (err) {
     if (err) {
         console.log("Database connection is failed. exiting now...");
         console.log("Check internet connection stable or not");
