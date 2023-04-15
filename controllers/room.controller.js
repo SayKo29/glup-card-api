@@ -35,7 +35,7 @@ function createRoom(roomObject, nickname, numPlayers, socket, io) {
     newRoom.save().then(() => {
         socket.emit("roomCreated", newRoom);
         socket.emit("numPlayers", newRoom.users.length);
-        socket.join(newRoom.key);
+        socket.join(newRoom.name);
     });
 }
 
@@ -55,11 +55,11 @@ function joinRoom(roomObject, socket, io) {
                     room.users.push({ nickname: roomObject.nickname });
                     //update room
                     room.save().then(() => {
-                        socket.join(room.key);
+                        socket.join(room.name);
                         socket.emit("roomJoined", room);
-                        io.to(room.key).emit("roomFound", room);
+                        io.to(room.name).emit("roomFound", room);
                         // emit numPlayers
-                        io.to(room.key).emit("numPlayers", room.users.length);
+                        io.to(room.name).emit("numPlayers", room.users.length);
                     });
                 }
             }
@@ -75,7 +75,7 @@ async function reconnectRoom(roomObject, socket, io) {
                 socket.emit("joinError", "Room not found");
             } else {
                 console.log("else");
-                socket.join(room.key);
+                socket.join(room.name);
 
                 //get game state
                 console.log(room, "room");
@@ -130,8 +130,8 @@ function removeUserFromRoom(roomObject, socket, io) {
                     room.save().then(() => {
                         socket.leave(room.key);
                         socket.emit("userRemoved", room);
-                        io.to(room.key).emit("roomFound", room);
-                        io.to(room.key).emit("numPlayers", room.users.length);
+                        io.to(room.name).emit("roomFound", room);
+                        io.to(room.name).emit("numPlayers", room.users.length);
                     });
                 }
             }
