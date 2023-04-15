@@ -53,7 +53,7 @@ io.on("connection", (socket) => {
 const port = process.env.PORT;
 
 http.listen(port, function () {
-    console.log("listening on *:5000 ");
+    console.log("listening on *:5000 " + port);
 });
 
 module.exports = app;
