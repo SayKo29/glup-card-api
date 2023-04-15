@@ -9,7 +9,6 @@ app.get("/", function (req, res) {
 });
 require("./models/user.schema");
 require("./models/room.schema");
-require("./models/message.schema");
 require("./models/Cards");
 
 // Controllers
@@ -24,6 +23,9 @@ io.on("connection", (socket) => {
     });
     socket.on("joinRoom", (roomObject) => {
         RoomController.joinRoom(roomObject, socket, io);
+    });
+    socket.on("reconnectRoom", (roomObject) => {
+        RoomController.reconnectRoom(roomObject, socket, io);
     });
     socket.on("startGame", (roomObject, host) => {
         GameController.startGame(roomObject, host, socket, io);

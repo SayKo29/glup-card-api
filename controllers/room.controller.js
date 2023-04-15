@@ -1,4 +1,5 @@
 const Room = require("../models/room.schema");
+const Game = require("../models/game.schema");
 
 function makeid(length) {
     var result = "";
@@ -14,14 +15,18 @@ function makeid(length) {
 }
 
 function createRoom(roomObject, nickname, numPlayers, socket, io) {
-    // const key = makeid(6);
-    const key = 1;
+    const key = makeid(6);
+    // const key = 1;
     // const host = nickname;
+    if (!nickname) {
+        socket.emit("joinError", "Username not provided");
+        return;
+    }
     const host = nickname;
     const users = [{ nickname: host }];
     const max_players = numPlayers;
     const newRoom = new Room({
-        name: 1,
+        name: makeid(6),
         key: key,
         users: users,
         max_players: max_players,
@@ -35,7 +40,6 @@ function createRoom(roomObject, nickname, numPlayers, socket, io) {
 }
 
 function joinRoom(roomObject, socket, io) {
-    console.log(roomObject);
     Room.findOne({ name: roomObject.name, key: roomObject.key }).then(
         (room) => {
             if (!room) {
@@ -58,6 +62,33 @@ function joinRoom(roomObject, socket, io) {
                         io.to(room.key).emit("numPlayers", room.users.length);
                     });
                 }
+            }
+        }
+    );
+}
+
+async function reconnectRoom(roomObject, socket, io) {
+    console.log("reconnect");
+    await Room.findOne({ name: roomObject.name, key: roomObject.key }).then(
+        (room) => {
+            if (!room) {
+                socket.emit("joinError", "Room not found");
+            } else {
+                console.log("else");
+                socket.join(room.key);
+
+                //get game state
+                console.log(room, "room");
+                Game.findOne({ room: room._id }).then((game) => {
+                    if (!game) {
+                        console.log("not found");
+                        socket.emit("gameError", "Game not found");
+                    } else {
+                        console.log("found", game);
+                        socket.emit("gameStarted", game);
+                        socket.emit("gameData", game);
+                    }
+                });
             }
         }
     );
@@ -113,4 +144,5 @@ module.exports = {
     joinRoom,
     removeRoom,
     removeUserFromRoom,
+    reconnectRoom,
 };

@@ -1,6 +1,7 @@
 const Room = require("../models/room.schema");
 const QuestionsDeck = require("../models/QuestionsDeck");
 const AnswersDeck = require("../models/AnswersDeck");
+const Game = require("../models/game.schema");
 
 let games = {};
 
@@ -78,12 +79,17 @@ async function voteHost(answer, roomObject, socket, io) {
         // get the next question taking it from the deck
         setCurrentQuestion(game);
 
+        //set host to next player
+        setNextHost(game);
+
         // get the next answers taking it from the deck
         await setPlayerAnswers(game, roomObject);
 
         game.playersAnswers = [];
 
         game.currentRound += 1;
+
+        await updateStateGame(game);
 
         // send a message to all clients with the updated game object
         io.to(roomObject.name).emit("updateRound", game);
@@ -130,6 +136,16 @@ function setCurrentQuestion(game) {
     game.currentQuestion = randomQuestion;
 }
 
+function setNextHost(game) {
+    const players = game.players;
+    const hostIndex = players.findIndex((p) => p.nickname === game.host);
+    if (hostIndex === players.length - 1) {
+        game.host = players[0].nickname;
+    } else {
+        game.host = players[hostIndex + 1].nickname;
+    }
+}
+
 async function setPlayerAnswers(game, roomObject) {
     // remove every answer from the players
     const users = await Room.find({
@@ -161,7 +177,16 @@ async function setPlayerAnswers(game, roomObject) {
                     selectedAnswer: null,
                     points: 0,
                 };
-                game.players.push(playerObject);
+                // if there is the player in the game, update the answers
+                const playerIndex = game.players.findIndex(
+                    (p) => p.nickname === player.nickname
+                );
+                if (playerIndex !== -1) {
+                    game.players[playerIndex].answerCards =
+                        playerObject.answerCards;
+                } else {
+                    game.players.push(playerObject);
+                }
             }
         }
     }
@@ -175,15 +200,28 @@ function sendGameStartedMessage(io, roomObject) {
     const game = games[gameKey];
     game.gameIsStarted = true;
     games[gameKey] = game;
+    console.log("Game started");
     io.to(roomObject.name).emit("gameStarted");
     io.to(roomObject.name).emit("gameData", game);
 }
 
 async function updateGameInDatabase(roomObject) {
-    await Room.findOneAndUpdate(
+    let room = await Room.findOneAndUpdate(
         { name: roomObject.name, key: roomObject.key },
         { game_started: true }
     );
+
+    // push the game object to the database
+    let currentGame = games[`${roomObject.name}-${roomObject.key}`];
+    // assign _id of the room to the game object
+    currentGame.room = room._id;
+
+    await Game.create(games[`${roomObject.name}-${roomObject.key}`]);
+}
+
+async function updateStateGame(game) {
+    // update the game in the database
+    await Game.findOneAndUpdate({ room: game.room }, game);
 }
 
 module.exports = { startGame, updateAnswersToHost, voteHost };
