@@ -2,14 +2,24 @@ var app = require("express")();
 require("dotenv").config();
 // mongo db connection
 require("./config/mongodb.config").sync;
-var http = require("http").createServer(app);
-var io = require("socket.io")(http);
+const { createServer } = require("http");
+const { Server } = require("socket.io");
+
 app.get("/", function (req, res) {
     res.sendFile(__dirname + "/index.html");
 });
 require("./models/user.schema");
 require("./models/room.schema");
 require("./models/Cards");
+const httpServer = createServer();
+const io = new Server(httpServer, {
+    connectionStateRecovery: {
+        // the backup duration of the sessions and the packets
+        maxDisconnectionDuration: 2 * 60 * 1000,
+        // whether to skip middlewares upon successful recovery
+        skipMiddlewares: true,
+    },
+});
 
 // Controllers
 const RoomController = require("./controllers/room.controller");
@@ -52,8 +62,8 @@ io.on("connection", (socket) => {
 // env port
 const port = process.env.PORT;
 
-http.listen(port, function () {
-    console.log("listening on *:5000 " + port);
+httpServer.listen(port, () => {
+    console.log(`Listening on port ${port}`);
 });
 
 module.exports = app;
