@@ -45,7 +45,7 @@ io.on("connection", (socket) => {
     socket.on("disconnect", () => {
         console.log("User disconnected");
         // remove the user from the room and db
-        RoomController.removeUserFromRoom(socket, io);
+        // RoomController.removeUserFromRoom(socket, io);
     });
 });
 
