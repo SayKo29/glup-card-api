@@ -43,7 +43,7 @@ function joinRoom(roomObject, socket, io) {
     Room.findOne({ name: roomObject.name, key: roomObject.key }).then(
         (room) => {
             if (!room) {
-                socket.emit("joinError", "Room not found");
+                socket.emit("joinError", "Room not found join rooom line 46");
             } else {
                 // Check if user is already in the room
                 const existingUser = room.users.find(
@@ -72,7 +72,7 @@ async function reconnectRoom(roomObject, socket, io) {
     await Room.findOne({ name: roomObject.name, key: roomObject.key }).then(
         (room) => {
             if (!room) {
-                socket.emit("joinError", "Room not found");
+                socket.emit("joinError", "Room not found reconnect line 75");
             } else {
                 console.log("else");
                 socket.join(room.name);
@@ -98,7 +98,7 @@ function removeRoom(roomObject, socket, io) {
     Room.deleteOne({ name: roomObject.name, key: roomObject.key }).then(
         (room) => {
             if (!room) {
-                socket.emit("joinError", "Room not found");
+                socket.emit("joinError", "Room not found delete line 101");
             } else {
                 socket.emit("roomRemoved", room);
             }
@@ -110,7 +110,7 @@ function removeUserFromRoom(roomObject, socket, io) {
     Room.findOne({ name: roomObject.name, key: roomObject.key }).then(
         (room) => {
             if (!room) {
-                socket.emit("joinError", "Room not found");
+                socket.emit("joinError", "Room not found remove user line 113");
             } else {
                 const userIndex = room.users.findIndex(
                     (user) => user.nickname === username
