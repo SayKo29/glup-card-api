@@ -106,7 +106,7 @@ function createGame() {
         answersDeck: [],
         playersAnswers: [],
         currentRound: 0,
-        maxRounds: 10,
+        maxRounds: 3,
         isGameOver: false,
         gameIsStarted: false,
     };
