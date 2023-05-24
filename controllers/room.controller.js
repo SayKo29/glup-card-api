@@ -14,24 +14,27 @@ function makeid(length) {
     return result;
 }
 
-function createRoom(roomObject, nickname, numPlayers, socket, io) {
+function createRoom(gameOptions, socket, io) {
     const key = makeid(6);
     // const key = 1;
     // const host = nickname;
-    if (!nickname) {
+    if (!gameOptions.user) {
         socket.emit("joinError", "Username not provided");
         return;
     }
-    const host = nickname;
+    const host = gameOptions.user;
     const users = [{ nickname: host }];
-    const max_players = numPlayers;
+    const max_players = gameOptions.numPlayers;
     const newRoom = new Room({
         name: makeid(6),
         key: key,
         users: users,
         max_players: max_players,
         host: host,
+        numRounds: gameOptions.numRounds ? gameOptions.numRounds : 5,
     });
+
+    console.log(newRoom, "newRoom");
     newRoom.save().then(() => {
         socket.emit("roomCreated", newRoom);
         socket.emit("numPlayers", newRoom.users.length);

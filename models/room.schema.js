@@ -30,6 +30,11 @@ const RoomSchema = new mongoose.Schema({
         required: true,
         default: false,
     },
+    numRounds: {
+        type: Number,
+        required: true,
+        default: 5,
+    },
 });
 
 const Room = mongoose.model("Room", RoomSchema);

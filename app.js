@@ -28,8 +28,9 @@ const GameController = require("./controllers/game.controller");
 // Socket.io
 io.on("connection", (socket) => {
     console.log("User connected");
-    socket.on("createRoom", (roomObject, nickname, numPlayers) => {
-        RoomController.createRoom(roomObject, nickname, numPlayers, socket, io);
+    socket.on("createRoom", (gameOptions) => {
+        console.log("createRoom", gameOptions);
+        RoomController.createRoom(gameOptions, socket, io);
     });
     socket.on("joinRoom", (roomObject) => {
         RoomController.joinRoom(roomObject, socket, io);
@@ -54,8 +55,6 @@ io.on("connection", (socket) => {
     });
     socket.on("disconnect", () => {
         console.log("User disconnected");
-        // remove the user from the room and db
-        // RoomController.removeUserFromRoom(socket, io);
     });
 });
 

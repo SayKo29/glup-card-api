@@ -106,7 +106,6 @@ function createGame() {
         answersDeck: [],
         playersAnswers: [],
         currentRound: 0,
-        maxRounds: 3,
         isGameOver: false,
         gameIsStarted: false,
     };
@@ -195,9 +194,15 @@ async function setPlayerAnswers(game, roomObject) {
     shuffleDecks(game);
 }
 
-function sendGameStartedMessage(io, roomObject) {
+async function sendGameStartedMessage(io, roomObject) {
+    let room = await Room.findOneAndUpdate(
+        { name: roomObject.name, key: roomObject.key },
+        { game_started: true }
+    );
+
     const gameKey = `${roomObject.name}-${roomObject.key}`;
     const game = games[gameKey];
+    game.maxRounds = room.numRounds;
     game.gameIsStarted = true;
     games[gameKey] = game;
     console.log("Game started");
