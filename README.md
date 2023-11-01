@@ -37,6 +37,3 @@ JWT_SECRET=Super_secret_string
 
 Open `./routes`
 
-### Reference
-
-https://www.topcoder.com/thrive/articles/authentication-and-authorization-in-express-js-api-using-jwt
