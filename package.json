@@ -21,6 +21,8 @@
         "start": "SET NODE_ENV=production & node ./app.js"
     },
     "dependencies": {
+        "@supabase/realtime-js": "^2.9.3",
+        "@supabase/supabase-js": "^2.39.2",
         "axios": "^1.1.3",
         "bcrypt": "^5.1.0",
         "bcryptjs": "^2.4.3",

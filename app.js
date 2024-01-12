@@ -1,68 +1,41 @@
-var app = require("express")();
-require("dotenv").config();
-// mongo db connection
-require("./config/mongodb.config").sync;
-const { createServer } = require("http");
-const { Server } = require("socket.io");
+const { createClient } = require("@supabase/supabase-js");
+const { createClient: createRealtimeClient } = require("@supabase/realtime-js");
 
-app.get("/", function (req, res) {
-    res.sendFile(__dirname + "/index.html");
-});
-require("./models/user.schema");
-require("./models/room.schema");
-require("./models/Cards");
-const httpServer = createServer();
-const io = new Server(httpServer, {
-    connectionStateRecovery: {
-        // the backup duration of the sessions and the packets
-        maxDisconnectionDuration: 2 * 60 * 1000,
-        // whether to skip middlewares upon successful recovery
-        skipMiddlewares: true,
-    },
-});
+// Configuración del cliente de Supabase
+const supabaseUrl = "https://patuzkpzaxwsemhdnjmc.supabase.co";
+const supabaseKey =
+    "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBhdHV6a3B6YXh3c2VtaGRuam1jIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MDUwMTI1NTIsImV4cCI6MjAyMDU4ODU1Mn0.9g4LLrPpAmVqK1vi4rEi6OJ1oYaAJ_84jicvjzC-0gA";
+const supabase = createClient(supabaseUrl, supabaseKey);
 
-// Controllers
-const RoomController = require("./controllers/room.controller");
-const GameController = require("./controllers/game.controller");
+// Configuración del cliente de Supabase Realtime
+const realtime = createRealtimeClient(supabaseUrl, supabaseKey);
 
-// Socket.io
-io.on("connection", (socket) => {
-    console.log("User connected");
-    socket.on("createRoom", (gameOptions) => {
-        console.log("createRoom", gameOptions);
-        RoomController.createRoom(gameOptions, socket, io);
-    });
-    socket.on("joinRoom", (roomObject) => {
-        RoomController.joinRoom(roomObject, socket, io);
-    });
-    socket.on("reconnectRoom", (roomObject) => {
-        RoomController.reconnectRoom(roomObject, socket, io);
-    });
-    socket.on("startGame", (roomObject, host) => {
-        GameController.startGame(roomObject, host, socket, io);
-    });
-    socket.on("selectedAnswer", (answer, roomObject, username) => {
-        GameController.updateAnswersToHost(
-            answer,
-            roomObject,
-            username,
-            socket,
-            io
-        );
-    });
-    socket.on("votedAnswerHost", (answer, roomObject) => {
-        GameController.voteHost(answer, roomObject, socket, io);
-    });
-    socket.on("disconnect", () => {
-        console.log("User disconnected");
-    });
+// Nombre de la tabla que quieres observar
+const tableName = "Rooms";
+
+// Configuración de la suscripción en tiempo real
+const subscription = realtime
+    .from(tableName)
+    .on("INSERT", (payload) => {
+        // Ejecutar tu método cuando se inserta una fila
+        const newRow = payload.new;
+        ejecutarMetodo(newRow);
+    })
+    .subscribe();
+
+// Función para ejecutar tu método
+function ejecutarMetodo(row) {
+    // Aquí puedes realizar acciones específicas con la fila recién insertada
+    console.log("Nueva fila insertada:", row);
+}
+
+// Maneja eventos de desconexión
+subscription.onClose(() => {
+    console.log("Desconexión de Supabase Realtime");
 });
 
-// env port
-const port = process.env.PORT;
-
-httpServer.listen(port, () => {
-    console.log(`Listening on port ${port}`);
+// Cierre adecuado de la aplicación
+process.on("SIGINT", async () => {
+    await subscription.unsubscribe();
+    process.exit();
 });
-
-module.exports = app;

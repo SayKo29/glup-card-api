@@ -16,8 +16,6 @@ function makeid(length) {
 
 function createRoom(gameOptions, socket, io) {
     const key = makeid(6);
-    // const key = 1;
-    // const host = nickname;
     if (!gameOptions.user) {
         socket.emit("joinError", "Username not provided");
         return;
