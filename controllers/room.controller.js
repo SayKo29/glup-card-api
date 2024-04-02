@@ -79,8 +79,6 @@ function leaveRoom (roomObject, socket, io) {
         (user) => user.nickname === roomObject.nickname
       )
 
-      console.log(userToRemoveIndex, 'userTOREMOVE')
-
       if (userToRemoveIndex !== -1) {
         // Elimina al usuario del array de usuarios de la sala
         room.users.splice(userToRemoveIndex, 1)
@@ -88,7 +86,7 @@ function leaveRoom (roomObject, socket, io) {
         // Guarda los cambios en la base de datos si es necesario
         room.save().then((updatedRoom) => {
           // Emite un evento para actualizar el numero de usuarios conectados en la sala
-          io.to(room.key).emit('numPlayers', room.users.length)
+          io.to(room.name).emit('numPlayers', updatedRoom.users.length)
         })
       } else {
         // El usuario no fue encontrado en la sala
@@ -137,44 +135,10 @@ function removeRoom (roomObject, socket, io) {
   )
 }
 
-function removeUserFromRoom (roomObject, socket, io) {
-  Room.findOne({ name: roomObject.name, key: roomObject.key }).then(
-    (room) => {
-      if (!room) {
-        socket.emit('joinError', 'Room not found remove user line 113')
-      } else {
-        const userIndex = room.users.findIndex(
-          (user) => user.nickname === roomObject.nickname
-        )
-        if (userIndex === -1) {
-          socket.emit('joinError', 'User not found')
-        } else {
-          room.users.splice(userIndex, 1)
-
-          if (room.host === roomObject.nickname) {
-            // If the removed user is the host, then assign host role to the next user in the list
-            if (room.users.length > 0) {
-              room.host = room.users[0].nickname
-            }
-          }
-
-          room.save().then(() => {
-            socket.leave(room.key)
-            socket.emit('userRemoved', room)
-            io.to(room.name).emit('roomFound', room)
-            io.to(room.name).emit('numPlayers', room.users.length)
-          })
-        }
-      }
-    }
-  )
-}
-
 module.exports = {
   createRoom,
   joinRoom,
   removeRoom,
-  removeUserFromRoom,
   reconnectRoom,
   leaveRoom
 }
