@@ -35,6 +35,10 @@ io.on("connection", (socket) => {
     socket.on("joinRoom", (roomObject) => {
         RoomController.joinRoom(roomObject, socket, io);
     });
+    socket.on("leaveRoom", (roomObject) => {
+        console.log("leave", roomObject)
+        RoomController.leaveRoom(roomObject, socket, io);
+    });
     socket.on("reconnectRoom", (roomObject) => {
         RoomController.reconnectRoom(roomObject, socket, io);
     });
