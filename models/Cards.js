@@ -1,23 +1,23 @@
-const mongoose = require("mongoose");
+const mongoose = require('mongoose')
 
 const cardSchema = new mongoose.Schema(
-    {
-        name: {
-            type: String,
-            required: true,
-        },
-        type: {
-            type: Number,
-            required: true,
-        },
+  {
+    name: {
+      type: String,
+      required: true
     },
-    { timestamps: true }
-);
+    type: {
+      type: Number,
+      required: true
+    }
+  },
+  { timestamps: true }
+)
 
-const Card = mongoose.model("Card", cardSchema, "Cards");
+const Card = mongoose.model('Card', cardSchema, 'Cards')
 
 const findByType = (type) => {
-    return Card.find({ type: type });
-};
+  return Card.find({ type })
+}
 
-module.exports = { Card, findByType };
+module.exports = { Card, findByType }
