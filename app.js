@@ -57,6 +57,11 @@ io.on("connection", (socket) => {
     socket.on("votedAnswerHost", (answer, roomObject) => {
         GameController.voteHost(answer, roomObject, socket, io);
     });
+
+    socket.on("reconnectGame", (roomObject) => {
+        RoomController.reconnectGame(roomObject, socket, io);
+    });
+
     socket.on("disconnect", () => {
         console.log("User disconnected");
     });

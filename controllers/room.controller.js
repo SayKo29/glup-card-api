@@ -122,6 +122,26 @@ async function reconnectRoom (roomObject, socket, io) {
     )
 }
 
+function reconnectGame (roomObject, socket, io) {
+    // buscar el juego en la base de datos y emitirlo al usuario
+    Room.findOne({ name: roomObject.name, key: roomObject.key }).then(
+        (room) => {
+            if (!room) {
+                socket.emit('joinError', 'Room not found reconnect line 75')
+            } else {
+                Game.findOne({ room: room._id }).then((game) => {
+                    if (!game) {
+                        socket.emit('gameError', 'Game not found')
+                    } else {
+                        socket.emit('gameStarted', game)
+                        socket.emit('gameData', game)
+                    }
+                })
+            }
+        }
+    )
+}
+
 function removeRoom (roomObject, socket, io) {
     Room.deleteOne({ name: roomObject.name, key: roomObject.key }).then(
         (room) => {
@@ -139,5 +159,6 @@ module.exports = {
     joinRoom,
     removeRoom,
     reconnectRoom,
-    leaveRoom
+    leaveRoom,
+    reconnectGame
 }
