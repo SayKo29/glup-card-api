@@ -32,27 +32,31 @@ async function startGame (roomObject, host, socket, io) {
 
     await sendGameStartedMessage(io, roomObject);
 
-    console.log(games[gameKey], "gamesss");
-
     updateGameInDatabase(roomObject);
 }
 
 async function updateAnswersToHost (answer, roomObject, username, socket, io) {
-    console.log('updateanswers');
     const gameKey = `${roomObject.name}-${roomObject.key}`;
     let game = games[gameKey];
     if (!game) {
         game = await getGameFromDatabase(roomObject);
-        console.log(game, 'game from database');
     }
 
     if (game) {
-        game.playersAnswers.push(answer[0]);
-        console.log(game, 'after push');
-        await updateStateGame(game, roomObject);
+        // validate if game.playersAnswers has a selected answer with the same username
 
-        // send a message to all clients with the updated game object
-        io.to(roomObject.name).emit("updateAnswers", game);
+        const playerAnswer = game.playersAnswers.find(
+            (p) => p.nickname === username
+        );
+        if (!playerAnswer) {
+
+            game.playersAnswers.push(answer);
+            await updateStateGame(game, roomObject);
+            // send a message to all clients with the updated game object
+            io.to(roomObject.name).emit("updateAnswers", game);
+        } else {
+            io.to(roomObject.name).emit("updateAnswers", game);
+        }
     } else {
         console.error('Failed to retrieve game from database');
         io.to(roomObject.name).emit("errorMessage", "Failed to retrieve game from database");
@@ -61,18 +65,17 @@ async function updateAnswersToHost (answer, roomObject, username, socket, io) {
 
 async function voteHost (answer, roomObject, socket, io) {
     const gameKey = `${roomObject.name}-${roomObject.key}`;
-    const game = games[gameKey];
+    let game = games[gameKey];
     if (!game) {
-        io.to(roomObject.name).emit("errorMessage", "Game not found");
-        return;
+        game = await getGameFromDatabase(roomObject);
+        if (game) {
+            games[gameKey] = game;
+        }
     }
-    console.log(answer, 'answer')
-    console.log(answer[0], 'answer00')
-    let winnerNickname = answer[0].nickname;
-
+    let winnerNickname = answer.nickname;
     game.players.forEach((player) => {
         if (player.nickname == winnerNickname) {
-            player.points += 1;
+            player.score += 1;
         }
     });
 
@@ -187,7 +190,7 @@ async function setPlayerAnswers (game, roomObject) {
                     nickname: player.nickname,
                     answerCards: answerCards,
                     selectedAnswer: null,
-                    points: 0,
+                    score: 0,
                 };
                 // if there is the player in the game, update the answers
                 const playerIndex = game.players.findIndex(
@@ -218,9 +221,7 @@ async function sendGameStartedMessage (io, roomObject) {
     game.maxRounds = room.numRounds;
     game.gameIsStarted = true;
     games[gameKey] = game;
-    console.log("Game started");
     io.to(roomObject.name).emit("gameStarted");
-    io.to(roomObject.name).emit("gameData", game);
 }
 
 async function updateGameInDatabase (roomObject) {
@@ -258,18 +259,29 @@ async function updateStateGame (game, roomObject) {
     );
 }
 
+async function getCurrentGameState (roomObject, username, socket, io) {
+    const gameKey = `${roomObject.name}-${roomObject.key}`;
+    let game = games[gameKey];
+    if (!game) {
+        game = await getGameFromDatabase(roomObject);
+    }
+    if (game) {
+        socket.emit("setGameState", game);
+    } else {
+        console.error('Failed to retrieve game from database');
+        io.to(roomObject.name).emit("errorMessage", "Failed to retrieve game from database");
+    }
+}
+
 async function getGameFromDatabase (roomObject) {
     const gameKey = `${roomObject.name}-${roomObject.key}`;
     let game = games[gameKey];
-    console.log(game, 'gamemethod')
     if (!game) {
         let room = await Room.findOne({
             name: roomObject.name,
             key: roomObject.key,
         });
-        console.log(room, 'room from database')
         let juego = await Game.findOne({ room: room._id }).then((juego) => {
-            console.log(juego, 'game from database');
             return juego;
         });
         return juego
@@ -277,4 +289,4 @@ async function getGameFromDatabase (roomObject) {
     return game;
 }
 
-module.exports = { startGame, updateAnswersToHost, voteHost };
+module.exports = { startGame, updateAnswersToHost, voteHost, getCurrentGameState };

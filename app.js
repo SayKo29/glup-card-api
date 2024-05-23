@@ -54,7 +54,11 @@ io.on("connection", (socket) => {
             io
         );
     });
+    socket.on("getCurrentGameState", (roomObject, username) => {
+        GameController.getCurrentGameState(roomObject, username, socket, io);
+    });
     socket.on("votedAnswerHost", (answer, roomObject) => {
+        console.log("votedAnswerHost", answer);
         GameController.voteHost(answer, roomObject, socket, io);
     });
 

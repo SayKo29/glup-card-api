@@ -96,23 +96,18 @@ function leaveRoom (roomObject, socket, io) {
 }
 
 async function reconnectRoom (roomObject, socket, io) {
-    console.log('reconnect')
     await Room.findOne({ name: roomObject.name, key: roomObject.key }).then(
         (room) => {
             if (!room) {
                 socket.emit('joinError', 'Room not found reconnect line 75')
             } else {
-                console.log('else')
                 socket.join(room.name)
 
                 // get game state
-                console.log(room, 'room')
                 Game.findOne({ room: room._id }).then((game) => {
                     if (!game) {
-                        console.log('not found')
                         socket.emit('gameError', 'Game not found')
                     } else {
-                        console.log('found', game)
                         socket.emit('gameStarted', game)
                         socket.emit('gameData', game)
                     }
