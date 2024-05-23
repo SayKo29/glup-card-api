@@ -24,17 +24,16 @@ function createRoom (gameOptions, socket, io) {
     }
     const host = gameOptions.user
     const users = [{ nickname: host }]
-    const maxPlayers = gameOptions.numPlayers
+    const max_players = gameOptions.numPlayers
     const newRoom = new Room({
         name: makeid(6),
         key,
         users,
-        maxPlayers,
+        max_players,
         host,
         numRounds: gameOptions.numRounds ? gameOptions.numRounds : 5
     })
 
-    console.log(newRoom, 'newRoom')
     newRoom.save().then(() => {
         socket.emit('roomCreated', newRoom)
         socket.emit('numPlayers', newRoom.users.length)

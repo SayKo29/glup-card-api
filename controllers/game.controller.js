@@ -9,7 +9,7 @@ let games = {};
 const questionsDeck = new QuestionsDeck();
 const answersDeck = new AnswersDeck();
 
-async function startGame(roomObject, host, socket, io) {
+async function startGame (roomObject, host, socket, io) {
     const gameKey = `${roomObject.name}-${roomObject.key}`;
     if (games[gameKey]) {
         socket.emit("errorMessage", "Game already started");
@@ -30,12 +30,14 @@ async function startGame(roomObject, host, socket, io) {
 
     await setPlayerAnswers(game, roomObject);
 
-    sendGameStartedMessage(io, roomObject);
+    await sendGameStartedMessage(io, roomObject);
+
+    console.log(games[gameKey], "gamesss");
 
     updateGameInDatabase(roomObject);
 }
 
-async function updateAnswersToHost(answer, roomObject, username, socket, io) {
+async function updateAnswersToHost (answer, roomObject, username, socket, io) {
     const gameKey = `${roomObject.name}-${roomObject.key}`;
     const game = games[gameKey];
     if (!game) {
@@ -48,7 +50,7 @@ async function updateAnswersToHost(answer, roomObject, username, socket, io) {
     io.to(roomObject.name).emit("updateAnswers", game);
 }
 
-async function voteHost(answer, roomObject, socket, io) {
+async function voteHost (answer, roomObject, socket, io) {
     const gameKey = `${roomObject.name}-${roomObject.key}`;
     const game = games[gameKey];
     if (!game) {
@@ -96,7 +98,7 @@ async function voteHost(answer, roomObject, socket, io) {
     }, 5000);
 }
 
-function createGame() {
+function createGame () {
     return {
         players: [],
         host: "",
@@ -111,7 +113,7 @@ function createGame() {
     };
 }
 
-async function getCardsFromDatabase(game) {
+async function getCardsFromDatabase (game) {
     const [questions, answers] = await Promise.all([
         questionsDeck.getCards(1),
         answersDeck.getCards(2),
@@ -121,21 +123,21 @@ async function getCardsFromDatabase(game) {
     game.answersDeck = answers;
 }
 
-function shuffleDecks(game) {
+function shuffleDecks (game) {
     game.questionsDeck = game.questionsDeck.sort(() => Math.random() - 0.5);
     game.answersDeck = game.answersDeck.sort(() => Math.random() - 0.5);
 }
 
-function assignHost(game, host) {
+function assignHost (game, host) {
     game.host = host;
 }
 
-function setCurrentQuestion(game) {
+function setCurrentQuestion (game) {
     const randomQuestion = game.questionsDeck[0];
     game.currentQuestion = randomQuestion;
 }
 
-function setNextHost(game) {
+function setNextHost (game) {
     const players = game.players;
     const hostIndex = players.findIndex((p) => p.nickname === game.host);
     if (hostIndex === players.length - 1) {
@@ -145,7 +147,7 @@ function setNextHost(game) {
     }
 }
 
-async function setPlayerAnswers(game, roomObject) {
+async function setPlayerAnswers (game, roomObject) {
     // remove every answer from the players
     const users = await Room.find({
         name: roomObject.name,
@@ -194,14 +196,14 @@ async function setPlayerAnswers(game, roomObject) {
     shuffleDecks(game);
 }
 
-async function sendGameStartedMessage(io, roomObject) {
+async function sendGameStartedMessage (io, roomObject) {
     let room = await Room.findOneAndUpdate(
         { name: roomObject.name, key: roomObject.key },
         { game_started: true }
     );
 
     const gameKey = `${roomObject.name}-${roomObject.key}`;
-    const game = games[gameKey];
+    let game = games[gameKey];
     game.maxRounds = room.numRounds;
     game.gameIsStarted = true;
     games[gameKey] = game;
@@ -210,7 +212,7 @@ async function sendGameStartedMessage(io, roomObject) {
     io.to(roomObject.name).emit("gameData", game);
 }
 
-async function updateGameInDatabase(roomObject) {
+async function updateGameInDatabase (roomObject) {
     let room = await Room.findOneAndUpdate(
         { name: roomObject.name, key: roomObject.key },
         { game_started: true }
@@ -224,7 +226,7 @@ async function updateGameInDatabase(roomObject) {
     await Game.create(games[`${roomObject.name}-${roomObject.key}`]);
 }
 
-async function updateStateGame(game) {
+async function updateStateGame (game) {
     // update the game in the database
     await Game.findOneAndUpdate({ room: game.room }, game);
 }
