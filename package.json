@@ -5,7 +5,7 @@
     "version": "1.0.0",
     "engines": {
         "node": "18.x",
-        "npm": "8.x"
+        "npm": "10.x"
     },
     "description": "Node.js Restful CRUD and Auth API with Node.js, Express, Mongoose and MongoDB Atlas",
     "private": false,
