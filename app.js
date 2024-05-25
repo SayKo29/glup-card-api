@@ -72,7 +72,7 @@ io.on("connection", (socket) => {
 });
 
 // env port
-const port = process.env.PORT || 3000;
+const port = process.env.PORT || 5000;
 
 httpServer.listen(port, () => {
     console.log(`Listening on port ${port}`);
