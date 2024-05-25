@@ -2,8 +2,6 @@ var app = require("express")();
 require("dotenv").config();
 // mongo db connection
 require("./config/mongodb.config").sync;
-const { createServer } = require("http");
-const { Server } = require("socket.io");
 
 app.get("/", function (req, res) {
     res.sendFile(__dirname + "/index.html");
@@ -11,8 +9,8 @@ app.get("/", function (req, res) {
 require("./models/user.schema");
 require("./models/room.schema");
 require("./models/Cards");
-const httpServer = createServer(app);
-const io = new Server(httpServer, {
+const http = require("http").createServer(app);
+const io = require("socket.io")(http, {
     connectionStateRecovery: {
         // the backup duration of the sessions and the packets
         maxDisconnectionDuration: 2 * 60 * 1000,
@@ -74,6 +72,6 @@ io.on("connection", (socket) => {
 // env port
 const port = process.env.PORT || 5000;
 
-httpServer.listen(port, () => {
+http.listen(port, () => {
     console.log(`Listening on port ${port}`);
 });
