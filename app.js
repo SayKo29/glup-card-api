@@ -11,7 +11,7 @@ app.get("/", function (req, res) {
 require("./models/user.schema");
 require("./models/room.schema");
 require("./models/Cards");
-const httpServer = createServer();
+const httpServer = createServer(app);
 const io = new Server(httpServer, {
     connectionStateRecovery: {
         // the backup duration of the sessions and the packets
