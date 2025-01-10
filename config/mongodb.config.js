@@ -1,19 +1,16 @@
 const mongoose = require("mongoose");
 
+mongoose.set("strictQuery", true);
+
 mongoose.connect(
     process.env.DATABASE_URL,
     { useNewUrlParser: true, useUnifiedTopology: true },
-    function (err) {
+    (err) => {
         if (err) {
-            console.log("Database connection is failed. exiting now...");
-            console.log("Check internet connection stable or not");
-            console.log(
-                "Check mongodb URL in .env and make sure it is not wrong"
-            );
+            console.log("Database connection failed.");
         }
-        console.log("Successfully connected to mongodb database");
+        console.log("Successfully connected to MongoDB.");
     }
 );
 
-// export sync
-module.exports = mongoose;
+export default mongoose;
